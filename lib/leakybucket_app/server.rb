@@ -52,8 +52,10 @@ class LeakybucketApp::Server
     end
   end
 
-  def invalid msg = 'not found'
-    [404, {'Content-Type' => 'text/plain'}, ['not found']]
+  def invalid msg = 'invalid api call, see: '
+    readme = "https://github.com/lukaselmer/leakybucket_app/blob/master/README.md"
+    msg += "\n<a href='#{readme}'>#{readme}</a>"
+    [404, {'Content-Type' => 'text/html'}, [msg]]
   end
 
   def routes
@@ -71,7 +73,7 @@ class LeakybucketApp::Server
       end
 
     end
-    return invalid('not found')
+    return invalid
   end
 
   def extract_params(env)
