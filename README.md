@@ -1,4 +1,4 @@
-leakybucket-app
+leakybucket_app
 ===============
 
-Ruby on Rails app to provide a leaky bucket service
+Rack app to provide a leaky bucket service
