@@ -10,7 +10,7 @@ class LeakybucketApp::Server
     self.manager = Leakybucket::Manager.new
   end
 
-  def value params
+  def bucket params
     bucket = find_or_create(params)
     render bucket
   end
@@ -27,8 +27,14 @@ class LeakybucketApp::Server
     render bucket
   end
 
+  def reset params
+    bucket = find_or_create(params)
+    bucket.reset
+    render bucket
+  end
+
   def find_or_create options
-    bucket = manager.buckets[options["key"]]
+    bucket = manager.buckets[options[:key]]
     bucket.nil? ? manager.create_bucket(options) : bucket
   end
 
@@ -42,6 +48,7 @@ class LeakybucketApp::Server
       j.key bucket.key
       j.value bucket.value
       j.leaking bucket.leaking?
+      j.limit bucket.limit
     end
   end
 
@@ -50,7 +57,7 @@ class LeakybucketApp::Server
   end
 
   def routes
-    [:value, :increment, :decrement, :create].collect do |v|
+    [:bucket, :increment, :decrement, :create, :reset].collect do |v|
       ["/#{v}", ->(params) { send(v, params) }]
     end
   end
@@ -68,7 +75,14 @@ class LeakybucketApp::Server
   end
 
   def extract_params(env)
-    return Rack::Utils.parse_nested_query(env['QUERY_STRING'])
+    symbolize_keys Rack::Utils.parse_nested_query(env['QUERY_STRING'])
+  end
+
+  def symbolize_keys hash
+    hash.inject({}) do |result, (key, value)|
+      result[key.to_sym] = value.is_a?(Hash) ? symbolize_keys(value) : value
+      result
+    end
   end
 
   def request_handler
