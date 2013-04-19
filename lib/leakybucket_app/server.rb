@@ -4,43 +4,56 @@ require 'jbuilder'
 
 class LeakybucketApp::Server
 
-  attr_accessor :manager
+  attr_accessor :manager, :persistence
 
   def initialize
     self.manager = Leakybucket::Manager.new
+    self.persistence = LeakybucketApp::Persistence.new("db/db.sqlite", self.manager)
+    persistence.load
   end
 
   def bucket params
-    bucket = find_or_create(params)
+    bucket = find(params)
+    return invalid if bucket.nil?
     render bucket
   end
 
   def increment params
-    bucket = find_or_create(params)
+    bucket = find(params)
+    return invalid if bucket.nil?
     bucket.increment
     render bucket
+    persistence.persist
   end
 
   def decrement params
-    bucket = find_or_create(params)
+    bucket = find(params)
+    return invalid if bucket.nil?
     bucket.decrement
     render bucket
+    persistence.persist
   end
 
   def reset params
-    bucket = find_or_create(params)
+    bucket = find(params)
+    return invalid if bucket.nil?
     bucket.reset
     render bucket
+    persistence.persist
   end
 
-  def find_or_create options
+  def find options
     bucket = manager.buckets[options[:key]]
-    bucket.nil? ? manager.create_bucket(options) : bucket
   end
 
   def create params
-    b = find_or_create(params)
+    b = find(params)
+    if b.nil?
+      manager.create_bucket(options)
+      b = find(params)
+    end
     render b
+    persistence.persist
   end
 
   def render bucket
